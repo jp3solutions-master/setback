@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#122e2c"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><title>Setback — Scorecard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar"><a class="brand" href="#" aria-label="Setback home"><span class="brand-mark">♠</span><span>SETBACK<span class="brand-sub">SCORECARD</span></span></a><button class="icon-btn" id="rulesBtn" aria-label="Scoring rules">i</button></header>
+    <section class="hero"><div class="hero-eyebrow"><span class="live-dot"></span><span id="gameLabel">GAME 1 OF 5</span><span class="hero-divider">/</span><span id="roundLabel">HAND 1</span></div></section>
+
+    <section class="round-card">
+      <div class="round-heading"><div><span class="section-label">GAME <span id="gameNumber">01</span> · HAND <span id="handNumber">01</span></span><h2>Score hand</h2></div><span class="round-status" id="roundStatus">IN PLAY</span></div>
+      <div class="game-score-panel"><span class="section-label">GAME SCORE · FIRST TO 11</span><div class="game-score-values"><span id="gameTotalOne">0</span><span class="game-score-dash">–</span><span id="gameTotalTwo">0</span></div></div>
+      <div class="bid-box"><div class="bid-main"><div class="bid-title"><span class="bid-icon">↗</span><span><b>Bid</b><small>Choose team · minimum 2</small></span></div><div class="bid-controls"><button id="bidMinus" aria-label="Lower bid">−</button><span id="bidValue">0</span><button id="bidPlus" aria-label="Raise bid">+</button></div></div><div class="bid-team-options" role="group" aria-label="Choose the bidding team"><button class="bid-team-option" data-bid-team="0" type="button" aria-pressed="false">US</button><button class="bid-team-option" data-bid-team="1" type="button" aria-pressed="false">THEM</button></div></div>
+      <div class="scoreboard"><div class="score-head"><span>POINTS</span><span id="scoreTeamOne">TEAM ONE</span><span id="scoreTeamTwo">TEAM TWO</span></div>
+        <div class="score-row"><div class="point-name"><span class="point-icon">♜</span><span><b>High</b><small>Highest trump</small></span></div><button class="score-value" data-score="high" data-team="0" aria-label="Team one high points">0</button><button class="score-value" data-score="high" data-team="1" aria-label="Team two high points">0</button></div>
+        <div class="score-row"><div class="point-name"><span class="point-icon">♧</span><span><b>Low</b><small>Lowest trump</small></span></div><button class="score-value" data-score="low" data-team="0" aria-label="Team one low points">0</button><button class="score-value" data-score="low" data-team="1" aria-label="Team two low points">0</button></div>
+        <div class="score-row"><div class="point-name"><span class="point-icon">✦</span><span><b>Jack</b><small>Jack of trump</small></span></div><button class="score-value" data-score="jack" data-team="0" aria-label="Team one jack points">0</button><button class="score-value" data-score="jack" data-team="1" aria-label="Team two jack points">0</button></div>
+        <div class="score-row"><div class="point-name"><span class="point-icon">◉</span><span><b>Game</b><small>Most card points</small></span></div><button class="score-value" data-score="game" data-team="0" aria-label="Team one game points">0</button><button class="score-value" data-score="game" data-team="1" aria-label="Team two game points">0</button></div>
+      </div>
+      
+      <div class="hand-outcome" id="handOutcome">Enter the card points and bid to see the hand result.</div>
+      <div class="round-total"><span>HAND SCORE</span><strong id="roundTotalOne">0</strong><strong id="roundTotalTwo">0</strong></div>
+      <button class="primary-btn" id="scoreHand">Score hand <span>→</span></button>
+    </section>
+    <section class="history-card"><details class="history-details"><summary class="history-head"><span class="section-label">HAND HISTORY</span><span class="history-chevron" aria-hidden="true">⌄</span></summary><div id="historyList" class="history-list"></div></details></section>
+    <section class="match-card">
+      <div class="match-head"><span class="section-label">MATCH SCORE</span><button class="text-btn" id="editTeams">Edit teams <span>↗</span></button></div>
+      <div class="teams"><div class="team"><label id="teamOneLabel">TEAM ONE</label><strong id="matchOne">0</strong><small id="roundWinsOne">0 games won</small></div><div class="versus">VS</div><div class="team team-right"><label id="teamTwoLabel">TEAM TWO</label><strong id="matchTwo">0</strong><small id="roundWinsTwo">0 games won</small></div></div>
+      <div class="progress-track" id="progressTrack"><span></span></div><div class="progress-caption"><span>GAMES PLAYED</span><span id="gamesPlayedLabel">0 OF 5</span></div><button id="exportScore" class="export-btn" type="button"><span aria-hidden="true">↓</span> Export PDF</button><button id="resetGame" class="new-game-btn" type="button"><span>↺</span> Start a new match</button>
+    </section>
+    <footer><div>MADE FOR THE TABLE <span>·</span> BUILT FOR YOUR PHONE</div><div class="footer-credit">Designed by JP3SOLUTIONS</div></footer>
+  </main>
+  <dialog id="teamDialog"><form method="dialog"><div class="modal-head"><span class="section-label">MATCH SETUP</span><button class="close-btn" aria-label="Close">×</button></div><h2>Name your teams</h2><label class="field-label">US<input id="teamInputOne" maxlength="18" value="US" autocomplete="off"></label><label class="field-label">THEM<input id="teamInputTwo" maxlength="18" value="THEM" autocomplete="off"></label><button class="primary-btn" id="saveTeams" value="save">Save setup <span>→</span></button></form></dialog>
+  <dialog id="rulesDialog"><form method="dialog"><div class="modal-head"><span class="section-label">QUICK RULES</span><button class="close-btn" aria-label="Close">×</button></div><h2>How scoring works</h2><p class="rules-copy">Tap a team’s score to award High, Low, Jack, or Game to that side. Choose the bidding team and set the bid. If they miss the bid, they score negative the bid; the other team keeps the points they earned. Press “Score hand” to add the hand to the running game score.</p><p class="rules-copy">Each game continues across as many hands as needed until a team reaches 11. Play five games total; the match score tracks game wins.</p><p class="rules-note">This starter uses the common 4-point Setback scoring. Adjusted rules can be added to match your table.</p><button class="primary-btn" value="close">Got it <span>→</span></button></form></dialog>
+  <dialog id="confirmDialog"><form method="dialog"><div class="modal-head"><span class="section-label">NEW GAME</span><button class="close-btn" aria-label="Close">×</button></div><h2>Start a new match?</h2><p class="rules-copy">This clears the current five-game match and hand history.</p><button class="primary-btn" id="confirmReset" value="yes">Start new match <span>→</span></button></form></dialog>
+  <div id="toast" role="status" aria-live="polite"></div><script src="app.js"></script><script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js'));</script>
+</body>
+</html>
