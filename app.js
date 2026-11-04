@@ -21,6 +21,18 @@ try {
 let toastTimer;
 const $ = selector => document.querySelector(selector);
 const $$ = selector => document.querySelectorAll(selector);
+const setTheme = theme => {
+  document.body.classList.toggle('theme-dark', theme === 'dark');
+  const button = $('#themeToggle');
+  if (!button) return;
+  button.textContent = theme === 'dark' ? '☀' : '☾';
+  button.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+  button.title = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+  localStorage.setItem('setback-theme', theme);
+};
+const storedTheme = localStorage.getItem('setback-theme');
+const initialTheme = storedTheme || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+setTheme(initialTheme);
 
 function cardPoints(hand, team) {
   return ['high', 'low', 'jack', 'game'].reduce((sum, kind) => sum + hand[kind][team], 0);
@@ -246,6 +258,7 @@ $('#saveTeams').onclick = event => {
   save();
 };
 $('#exportScore').onclick = exportScore;
+$('#themeToggle').onclick = () => setTheme(document.body.classList.contains('theme-dark') ? 'light' : 'dark');
 $('#rulesBtn').onclick = () => $('#rulesDialog').showModal();
 $('#resetGame').onclick = () => $('#confirmDialog').showModal();
 $('#confirmReset').onclick = event => {

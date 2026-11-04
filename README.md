@@ -9,6 +9,7 @@ A lightweight, phone-friendly scorekeeper for Setback. Open `index.html` in a br
 - Choose the bidding team, set a bid from 2 to 4, and have the scorecard determine whether they made it or were set back.
 - Play multiple hands until a team reaches 11 points to win a game; track exactly five games and review hand history.
 - Save the current match in the browser on the device.
+- Switch between light and dark themes; the preference is saved on the device.
 
 ## Scoring assumptions in this starter
 
