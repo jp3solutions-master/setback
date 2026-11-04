@@ -11,6 +11,7 @@ A lightweight, phone-friendly scorekeeper for Setback. Open `index.html` in a br
 - Save the current match in the browser on the device.
 - Switch between light and dark themes; the preference is saved on the device.
 - Increase or decrease text size with the A− / A+ controls; sizing preference is saved on the device.
+- Keep the hand-scoring action pinned to the bottom of the screen on phones.
 
 ## Scoring assumptions in this starter
 

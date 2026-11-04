@@ -83,8 +83,6 @@ function render() {
   $('#matchTwo').textContent = state.gameWins[1];
   $('#roundWinsOne').textContent = `${state.gameWins[0]} ${state.gameWins[0] === 1 ? 'game' : 'games'} won`;
   $('#roundWinsTwo').textContent = `${state.gameWins[1]} ${state.gameWins[1] === 1 ? 'game' : 'games'} won`;
-  $('#gameLabel').textContent = state.matchComplete ? 'MATCH COMPLETE' : `GAME ${state.game} OF ${TOTAL_GAMES}`;
-  $('#roundLabel').textContent = state.gameComplete ? 'GAME COMPLETE' : `HAND ${state.hand}`;
   $('#gameNumber').textContent = String(state.game).padStart(2, '0');
   $('#handNumber').textContent = String(state.hand).padStart(2, '0');
   $('#roundStatus').textContent = state.matchComplete ? 'MATCH COMPLETE' : state.gameComplete ? 'GAME COMPLETE' : 'IN PLAY';
