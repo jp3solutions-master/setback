@@ -9,6 +9,8 @@ const initial = (teams = ['US', 'THEM']) => ({
 });
 let state;
 let migrated = false;
+let editingHandIndex = null;
+let resumeState = null;
 try {
   const saved = JSON.parse(localStorage.getItem('setback-scorecard'));
   if (saved?.version === 2) state = saved;
@@ -111,14 +113,17 @@ function render() {
     : outcome === 'made'
       ? `${state.teams[hand.bidTeam]} made the bid (${cardPoints(hand, hand.bidTeam)} of ${hand.bid}).`
       : `${state.teams[hand.bidTeam]} is set back (${cardPoints(hand, hand.bidTeam)} of ${hand.bid}) and scores −${hand.bid}.`;
-  $('#scoreHand').innerHTML = state.matchComplete
+  $('#scoreHand').innerHTML = editingHandIndex !== null
+    ? 'Save hand edit <span>✓</span>'
+    : state.matchComplete
     ? 'Match complete <span>✓</span>'
     : state.gameComplete
       ? `Start game ${state.game + 1} <span>→</span>`
       : 'Score hand <span>→</span>';
-  $('#scoreHand').classList.toggle('next-game', state.gameComplete && !state.matchComplete);
-  $('#scoreHand').disabled = state.matchComplete;
-  $('#scoreHand').style.opacity = state.matchComplete ? '.55' : '1';
+  $('#scoreHand').classList.toggle('next-game', editingHandIndex === null && state.gameComplete && !state.matchComplete);
+  $('#scoreHand').disabled = state.matchComplete && editingHandIndex === null;
+  $('#cancelHandEdit').hidden = editingHandIndex === null;
+  $('#scoreHand').style.opacity = state.matchComplete && editingHandIndex === null ? '.55' : '1';
   drawHistory();
   applyFontScale();
 }
@@ -133,7 +138,9 @@ function drawHistory() {
       <span class="history-n">${String(item.hand).padStart(2, '0')}</span>
       <div><div class="history-desc">Game ${item.game} · Hand ${item.hand}</div><div class="history-winner">${item.bidOutcome ? (item.bidOutcome === 'made' ? 'Bid made' : 'Set back') : 'Hand scored'} · Game score ${item.gameScore[0]}–${item.gameScore[1]}</div></div>
       <div class="history-score"><span>${item.handScore[0]}</span> – <span>${item.handScore[1]}</span></div>
+      <button class="history-edit" type="button" data-edit-hand="${state.hands.indexOf(item)}" aria-label="Edit game ${item.game}, hand ${item.hand}">Edit</button>
     </div>`).join('');
+  element.querySelectorAll('[data-edit-hand]').forEach(button => button.addEventListener('click', () => beginHandEdit(Number(button.dataset.editHand))));
 }
 function save() {
   localStorage.setItem('setback-scorecard', JSON.stringify(state));
@@ -166,7 +173,100 @@ $$('.bid-team-option').forEach(button => button.addEventListener('click', () => 
   save();
 }));
 
+function beginHandEdit(index) {
+  if (editingHandIndex !== null) return;
+  const item = state.hands[index];
+  if (!item?.points) return toast('This hand cannot be edited because its point details are unavailable.');
+  resumeState = {
+    game: state.game, hand: state.hand, gameScore: [...state.gameScore], handData: structuredClone(state.handData),
+    gameComplete: state.gameComplete, matchComplete: state.matchComplete
+  };
+  editingHandIndex = index;
+  state.game = item.game;
+  state.hand = item.hand;
+  state.gameScore = item.gameScore.map((score, team) => score - item.handScore[team]);
+  state.handData = { ...structuredClone(item.points), bid: item.bid || 0, bidTeam: item.bidTeam ?? null };
+  render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  toast(`Editing game ${item.game}, hand ${item.hand}`);
+}
+
+function rebuildHistoryScores() {
+  const gamesByNumber = new Map();
+  state.hands.forEach(item => {
+    const score = [handTotal({ ...item.points, bid: item.bid || 0, bidTeam: item.bidTeam ?? null }, 0), handTotal({ ...item.points, bid: item.bid || 0, bidTeam: item.bidTeam ?? null }, 1)];
+    item.handScore = score;
+    item.bidOutcome = bidOutcome({ ...item.points, bid: item.bid || 0, bidTeam: item.bidTeam ?? null });
+    const running = gamesByNumber.get(item.game) || [0, 0];
+    item.gameScore = [running[0] + score[0], running[1] + score[1]];
+    gamesByNumber.set(item.game, item.gameScore);
+  });
+  state.games = [];
+  state.gameWins = [0, 0];
+  for (const [game, hands] of [...new Set(state.hands.map(item => item.game))].sort((a, b) => a - b).map(game => [game, state.hands.filter(item => item.game === game)])) {
+    let running = [0, 0];
+    let winner = null;
+    for (const item of hands) {
+      running = [...item.gameScore];
+      const reached = running.map(score => score >= TARGET_SCORE);
+      if (reached[0] || reached[1]) {
+        if (!(reached[0] && reached[1] && running[0] === running[1])) {
+          winner = reached[0] && reached[1] ? (running[0] > running[1] ? 0 : 1) : reached[0] ? 0 : 1;
+          break;
+        }
+      }
+    }
+    if (winner !== null) {
+      state.games.push({ game, winner, score: running });
+      state.gameWins[winner]++;
+    }
+  }
+  state.gameScore = [...(gamesByNumber.get(state.game) || [0, 0])];
+  state.gameComplete = state.games.some(game => game.game === state.game);
+  state.matchComplete = state.games.length >= TOTAL_GAMES;
+}
+
+function cancelHandEdit() {
+  if (editingHandIndex === null || !resumeState) return;
+  Object.assign(state, resumeState);
+  editingHandIndex = null;
+  resumeState = null;
+  save();
+}
+$('#cancelHandEdit').onclick = cancelHandEdit;
+
 $('#scoreHand').onclick = () => {
+  if (editingHandIndex !== null) {
+    const hand = state.handData;
+    if (hand.bid > 0 && hand.bidTeam === null) return toast('Choose a bidding team');
+    if (!['high', 'low', 'jack', 'game'].some(kind => hand[kind][0] || hand[kind][1]) && hand.bid === 0) return toast('Enter the hand points before saving');
+    const original = state.hands[editingHandIndex];
+    state.hands[editingHandIndex] = {
+      ...original, handScore: [handTotal(hand, 0), handTotal(hand, 1)], bidOutcome: bidOutcome(hand),
+      bid: hand.bid, bidTeam: hand.bidTeam,
+      points: { high: [...hand.high], low: [...hand.low], jack: [...hand.jack], game: [...hand.game] }
+    };
+    rebuildHistoryScores();
+    Object.assign(state, resumeState, { gameWins: state.gameWins, games: state.games, hands: state.hands });
+    // Keep the edited totals and completion state for the game currently shown.
+    const editedGame = original.game;
+    const currentGame = resumeState.game;
+    if (currentGame === editedGame) {
+      state.gameScore = [...(state.hands.filter(item => item.game === currentGame).at(-1)?.gameScore || [0, 0])];
+      state.gameComplete = state.games.some(game => game.game === currentGame);
+      if (resumeState.gameComplete && !state.gameComplete) {
+        const lastHand = state.hands.filter(item => item.game === currentGame).at(-1);
+        state.hand = (lastHand?.hand || 0) + 1;
+        state.handData = blankHand();
+      }
+      state.matchComplete = state.games.length >= TOTAL_GAMES;
+    }
+    editingHandIndex = null;
+    resumeState = null;
+    save();
+    toast('Hand history updated');
+    return;
+  }
   if (state.matchComplete) return;
   if (state.gameComplete) {
     state.game++;
