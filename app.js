@@ -33,6 +33,19 @@ const setTheme = theme => {
 const storedTheme = localStorage.getItem('setback-theme');
 const initialTheme = storedTheme || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 setTheme(initialTheme);
+let fontScale = Math.min(1.5, Math.max(1, Number(localStorage.getItem('setback-font-scale')) || 1.1));
+const baseFontSizes = new WeakMap();
+function applyFontScale() {
+  document.querySelectorAll('body *').forEach(element => {
+    if (element.matches('.font-control, .theme-toggle, #rulesBtn, script, style, svg, path')) return;
+    if (!baseFontSizes.has(element)) baseFontSizes.set(element, parseFloat(getComputedStyle(element).fontSize) || 16);
+    element.style.fontSize = `${baseFontSizes.get(element) * fontScale}px`;
+  });
+  $('#fontDown').disabled = fontScale <= 1;
+  $('#fontUp').disabled = fontScale >= 1.5;
+  $('#fontDown').setAttribute('aria-valuetext', `${Math.round(fontScale * 100)} percent`);
+  $('#fontUp').setAttribute('aria-valuetext', `${Math.round(fontScale * 100)} percent`);
+}
 
 function cardPoints(hand, team) {
   return ['high', 'low', 'jack', 'game'].reduce((sum, kind) => sum + hand[kind][team], 0);
@@ -109,6 +122,7 @@ function render() {
   $('#scoreHand').disabled = state.matchComplete;
   $('#scoreHand').style.opacity = state.matchComplete ? '.55' : '1';
   drawHistory();
+  applyFontScale();
 }
 function drawHistory() {
   const element = $('#historyList');
@@ -259,6 +273,8 @@ $('#saveTeams').onclick = event => {
 };
 $('#exportScore').onclick = exportScore;
 $('#themeToggle').onclick = () => setTheme(document.body.classList.contains('theme-dark') ? 'light' : 'dark');
+$('#fontDown').onclick = () => { fontScale = Math.max(1, Math.round((fontScale - 0.1) * 100) / 100); localStorage.setItem('setback-font-scale', fontScale); applyFontScale(); };
+$('#fontUp').onclick = () => { fontScale = Math.min(1.5, Math.round((fontScale + 0.1) * 100) / 100); localStorage.setItem('setback-font-scale', fontScale); applyFontScale(); };
 $('#rulesBtn').onclick = () => $('#rulesDialog').showModal();
 $('#resetGame').onclick = () => $('#confirmDialog').showModal();
 $('#confirmReset').onclick = event => {
