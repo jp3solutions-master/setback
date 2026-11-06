@@ -410,7 +410,10 @@ $('#confirmReset').onclick = event => {
   save();
   toast('New five-game match ready');
 };
-if (!state.started) { setupOpen = true; }
+setupOpen = true;
+settingsMode = false;
+$('#welcomeTeamOne').value = state.teams[0];
+$('#welcomeTeamTwo').value = state.teams[1];
 render();
 if (migrated) {
   save();
