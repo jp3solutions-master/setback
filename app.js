@@ -1,22 +1,26 @@
-const TARGET_SCORE = 11;
-const TOTAL_GAMES = 5;
+let TARGET_SCORE = 11;
+let TOTAL_GAMES = 5;
+let WIN_BY_TWO = false;
+let setup = { points: 11, games: 5, winByTwo: false };
 const blankHand = () => ({
   high: [0, 0], low: [0, 0], jack: [0, 0], game: [0, 0], bidTeam: null, bid: 0
 });
 const initial = (teams = ['US', 'THEM']) => ({
-  version: 2, teams, game: 1, hand: 1, gameWins: [0, 0], gameScore: [0, 0],
+  version: 3, settings: { ...setup }, teams, game: 1, hand: 1, gameWins: [0, 0], gameScore: [0, 0],
   handData: blankHand(), hands: [], games: [], gameComplete: false, matchComplete: false
 });
 let state;
 let migrated = false;
 let editingHandIndex = null;
 let resumeState = null;
+let setupOpen = false;
 try {
   const saved = JSON.parse(localStorage.getItem('setback-scorecard'));
-  if (saved?.version === 2) state = saved;
+  if (saved?.version === 2 || saved?.version === 3) { state = saved; setup = { ...setup, ...(saved.settings || {}) }; TARGET_SCORE = Number(setup.points) || 11; TOTAL_GAMES = Number(setup.games) || 5; WIN_BY_TWO = Boolean(setup.winByTwo); if (saved.version === 2) state.started = true; }
   else {
     const teams = saved?.teams || ['US', 'THEM'];
     state = initial(teams.map((team, i) => team === (i ? 'Team Two' : 'Team One') ? (i ? 'THEM' : 'US') : team));
+    state.started = true;
     migrated = Boolean(saved);
   }
 } catch { state = initial(); }
@@ -70,6 +74,13 @@ function toast(message) {
 function render() {
   const hand = state.handData;
   const locked = state.gameComplete || state.matchComplete;
+  $('#appShell').hidden = false;
+  $('#welcomeScreen').hidden = !setupOpen;
+  $('#resumeMatch').hidden = !state.started;
+  $('#pointsValue').textContent = setup.points;
+  $('#gamesValue').textContent = setup.games;
+  $$('[data-win-by-two]').forEach(button => { button.classList.toggle('selected', button.dataset.winByTwo === String(setup.winByTwo)); button.setAttribute('aria-pressed', String(button.dataset.winByTwo === String(setup.winByTwo))); });
+  $('.game-score-panel .section-label').textContent = `GAME SCORE · ${WIN_BY_TWO ? 'WIN BY 2 · ' : ''}FIRST TO ${TARGET_SCORE}`;
   $('#teamOneLabel').textContent = state.teams[0].toUpperCase();
   $('#teamTwoLabel').textContent = state.teams[1].toUpperCase();
   $('#scoreTeamOne').textContent = state.teams[0].toUpperCase();
@@ -208,7 +219,7 @@ function rebuildHistoryScores() {
     let winner = null;
     for (const item of hands) {
       running = [...item.gameScore];
-      const reached = running.map(score => score >= TARGET_SCORE);
+      const reached = running.map(score => WIN_BY_TWO ? score >= TARGET_SCORE && score - Math.min(...running) >= 2 : score >= TARGET_SCORE);
       if (reached[0] || reached[1]) {
         if (!(reached[0] && reached[1] && running[0] === running[1])) {
           winner = reached[0] && reached[1] ? (running[0] > running[1] ? 0 : 1) : reached[0] ? 0 : 1;
@@ -291,7 +302,7 @@ $('#scoreHand').onclick = () => {
     bid: hand.bid, bidTeam: hand.bidTeam,
     points: { high: [...hand.high], low: [...hand.low], jack: [...hand.jack], game: [...hand.game] }
   });
-  const reached = state.gameScore.map(score => score >= TARGET_SCORE);
+  const reached = state.gameScore.map(score => WIN_BY_TWO ? score >= TARGET_SCORE && score - Math.min(...state.gameScore) >= 2 : score >= TARGET_SCORE);
   if (reached[0] || reached[1]) {
     let winner = reached[0] && reached[1]
       ? (state.gameScore[0] === state.gameScore[1] ? -1 : state.gameScore[0] > state.gameScore[1] ? 0 : 1)
@@ -352,7 +363,7 @@ function exportScore() {
   const date = new Date().toLocaleDateString();
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Setback Score</title><style>
     @page{size:landscape;margin:12mm}*{box-sizing:border-box}body{font:10px Arial,sans-serif;color:#193632;margin:0}header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #17634f;padding-bottom:10px;margin-bottom:14px}h1{font:700 22px Arial;margin:0 0 4px}header p{margin:0;color:#708078;font-size:10px}.brand{font-size:10px;font-weight:bold;letter-spacing:2px;color:#17634f}.summary{display:flex;gap:10px;margin-bottom:14px}.summary-card{flex:1;border:1px solid #dfe7df;border-radius:8px;padding:9px 11px}.summary-card span{display:block;color:#7b8a81;font-size:8px;text-transform:uppercase;letter-spacing:1px}.summary-card strong{display:block;font-size:16px;margin-top:4px}.game-block{margin:0 0 14px;page-break-inside:avoid}.game-title{display:flex;align-items:center;justify-content:space-between;margin:0 0 6px}.game-title h2{font-size:13px;margin:0}.game-title div{display:flex;gap:10px;color:#66766d}.game-title strong{color:#17634f}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #dfe5de;padding:5px 4px;text-align:center;vertical-align:middle;overflow-wrap:anywhere}th{background:#edf3ec;font-size:8px;color:#52665b}td{font-size:9px}tr.current{background:#fff8e9}.empty{color:#8a968e;padding:12px}footer{border-top:1px solid #e0e5de;padding-top:8px;margin-top:12px;color:#809087;font-size:8px;letter-spacing:.7px;text-align:center}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-    </style></head><body><header><div><h1>Setback Scorecard</h1><p>Five-game match · Exported ${escapeHtml(date)}</p></div><div class="brand">JP3SOLUTIONS</div></header><div class="summary"><div class="summary-card"><span>${escapeHtml(teams[0])} · Games won</span><strong>${state.gameWins[0]}</strong></div><div class="summary-card"><span>${escapeHtml(teams[1])} · Games won</span><strong>${state.gameWins[1]}</strong></div><div class="summary-card"><span>Games completed</span><strong>${state.games.length} of 5</strong></div><div class="summary-card"><span>Match status</span><strong>${state.matchComplete ? 'Complete' : 'In progress'}</strong></div></div>${gameSections.join('')}<footer>DESIGNED BY JP3SOLUTIONS</footer><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250));</script></body></html>`;
+    </style></head><body><header><div><h1>Setback Scorecard</h1><p>${TOTAL_GAMES}-game match · First to ${TARGET_SCORE}${WIN_BY_TWO ? ' · Win by 2' : ''} · Exported ${escapeHtml(date)}</p></div><div class="brand">JP3SOLUTIONS</div></header><div class="summary"><div class="summary-card"><span>${escapeHtml(teams[0])} · Games won</span><strong>${state.gameWins[0]}</strong></div><div class="summary-card"><span>${escapeHtml(teams[1])} · Games won</span><strong>${state.gameWins[1]}</strong></div><div class="summary-card"><span>Games completed</span><strong>${state.games.length} of ${TOTAL_GAMES}</strong></div><div class="summary-card"><span>Match status</span><strong>${state.matchComplete ? 'Complete' : 'In progress'}</strong></div></div>${gameSections.join('')}<footer>DESIGNED BY JP3SOLUTIONS</footer><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250));</script></body></html>`;
   printWindow.document.open();
   printWindow.document.write(html);
   printWindow.document.close();
@@ -374,14 +385,23 @@ $('#themeToggle').onclick = () => setTheme(document.body.classList.contains('the
 $('#fontDown').onclick = () => { fontScale = Math.max(1, Math.round((fontScale - 0.1) * 100) / 100); localStorage.setItem('setback-font-scale', fontScale); applyFontScale(); };
 $('#fontUp').onclick = () => { fontScale = Math.min(1.5, Math.round((fontScale + 0.1) * 100) / 100); localStorage.setItem('setback-font-scale', fontScale); applyFontScale(); };
 $('#rulesBtn').onclick = () => $('#rulesDialog').showModal();
-$('#resetGame').onclick = () => $('#confirmDialog').showModal();
+$('#resetGame').onclick = () => { $('#confirmDialog').showModal(); };
+$$('[data-adjust]').forEach(button => button.onclick = () => { const key = button.dataset.adjust; const floor = key === 'points' ? 1 : 1; setup[key] = Math.max(floor, Math.min(99, setup[key] + Number(button.dataset.delta))); render(); });
+$$('[data-win-by-two]').forEach(button => button.onclick = () => { setup.winByTwo = button.dataset.winByTwo === 'true'; render(); });
+$('#startMatch').onclick = () => { setupOpen = false; TARGET_SCORE = setup.points; TOTAL_GAMES = setup.games; WIN_BY_TWO = setup.winByTwo; state = initial([$('#welcomeTeamOne').value.trim() || 'US', $('#welcomeTeamTwo').value.trim() || 'THEM']); state.settings = { ...setup }; state.started = true; save(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+$('#resumeMatch').onclick = () => { setupOpen = false; render(); };
+$('.brand').onclick = event => { event.preventDefault(); if (state.started) { setupOpen = true; $('#welcomeTeamOne').value = state.teams[0]; $('#welcomeTeamTwo').value = state.teams[1]; render(); } };
+
 $('#confirmReset').onclick = event => {
   event.preventDefault();
   state = initial(state.teams);
+  state.settings = { ...setup };
+  state.started = true;
   $('#confirmDialog').close();
   save();
   toast('New five-game match ready');
 };
+if (!state.started) { state.started = false; setupOpen = true; }
 render();
 if (migrated) {
   save();
