@@ -14,13 +14,14 @@ let migrated = false;
 let editingHandIndex = null;
 let resumeState = null;
 let setupOpen = false;
+let settingsMode = false;
 try {
   const saved = JSON.parse(localStorage.getItem('setback-scorecard'));
-  if (saved?.version === 2 || saved?.version === 3) { state = saved; setup = { ...setup, ...(saved.settings || {}) }; TARGET_SCORE = Number(setup.points) || 11; TOTAL_GAMES = Number(setup.games) || 5; WIN_BY_TWO = Boolean(setup.winByTwo); if (saved.version === 2) state.started = true; }
+  if (saved?.version === 2 || saved?.version === 3) { state = saved; setup = { ...setup, ...(saved.settings || {}) }; TARGET_SCORE = Number(setup.points) || 11; TOTAL_GAMES = Number(setup.games) || 5; WIN_BY_TWO = Boolean(setup.winByTwo); if (saved.version === 2) state.started = true; if (saved.version === 3 && !saved.hands?.length && !saved.games?.length && saved.game === 1 && saved.hand === 1) state.started = false; }
   else {
     const teams = saved?.teams || ['US', 'THEM'];
     state = initial(teams.map((team, i) => team === (i ? 'Team Two' : 'Team One') ? (i ? 'THEM' : 'US') : team));
-    state.started = true;
+    state.started = Boolean(saved);
     migrated = Boolean(saved);
   }
 } catch { state = initial(); }
@@ -76,7 +77,11 @@ function render() {
   const locked = state.gameComplete || state.matchComplete;
   $('#appShell').hidden = false;
   $('#welcomeScreen').hidden = !setupOpen;
-  $('#resumeMatch').hidden = !state.started;
+  $('#resumeMatch').hidden = !state.started || settingsMode;
+  $('#saveSettings').hidden = !settingsMode;
+  $('#startMatch').hidden = settingsMode;
+  $('#welcomeEyebrow').textContent = settingsMode ? 'GAME SETTINGS' : 'SETBACK SCORECARD';
+  $('#welcomeTitle').innerHTML = settingsMode ? 'Update your<br><em>game settings</em>' : 'Ready for<br><em>the next hand?</em>';
   $('#pointsValue').textContent = setup.points;
   $('#gamesValue').textContent = setup.games;
   $$('[data-win-by-two]').forEach(button => { button.classList.toggle('selected', button.dataset.winByTwo === String(setup.winByTwo)); button.setAttribute('aria-pressed', String(button.dataset.winByTwo === String(setup.winByTwo))); });
@@ -316,7 +321,7 @@ $('#scoreHand').onclick = () => {
     state.gameComplete = true;
     state.games.push({ game: state.game, winner, score: [...state.gameScore] });
     state.gameWins[winner]++;
-    if (state.game === TOTAL_GAMES) state.matchComplete = true;
+    if (state.game >= TOTAL_GAMES) state.matchComplete = true;
   } else {
     state.hand++;
     state.handData = blankHand();
@@ -388,20 +393,24 @@ $('#rulesBtn').onclick = () => $('#rulesDialog').showModal();
 $('#resetGame').onclick = () => { $('#confirmDialog').showModal(); };
 $$('[data-adjust]').forEach(button => button.onclick = () => { const key = button.dataset.adjust; const floor = key === 'points' ? 1 : 1; setup[key] = Math.max(floor, Math.min(99, setup[key] + Number(button.dataset.delta))); render(); });
 $$('[data-win-by-two]').forEach(button => button.onclick = () => { setup.winByTwo = button.dataset.winByTwo === 'true'; render(); });
-$('#startMatch').onclick = () => { setupOpen = false; TARGET_SCORE = setup.points; TOTAL_GAMES = setup.games; WIN_BY_TWO = setup.winByTwo; state = initial([$('#welcomeTeamOne').value.trim() || 'US', $('#welcomeTeamTwo').value.trim() || 'THEM']); state.settings = { ...setup }; state.started = true; save(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-$('#resumeMatch').onclick = () => { setupOpen = false; render(); };
+$('#startMatch').onclick = () => { setupOpen = false; settingsMode = false; TARGET_SCORE = setup.points; TOTAL_GAMES = setup.games; WIN_BY_TWO = setup.winByTwo; state = initial([$('#welcomeTeamOne').value.trim() || 'US', $('#welcomeTeamTwo').value.trim() || 'THEM']); state.settings = { ...setup }; state.started = true; save(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+$('#resumeMatch').onclick = () => { setupOpen = false; settingsMode = false; render(); };
+$('#settingsBtn').onclick = () => { setup.points = TARGET_SCORE; setup.games = TOTAL_GAMES; setup.winByTwo = WIN_BY_TWO; $('#welcomeTeamOne').value = state.teams[0]; $('#welcomeTeamTwo').value = state.teams[1]; settingsMode = true; setupOpen = true; render(); };
+$('#saveSettings').onclick = () => { TARGET_SCORE = Number(setup.points); TOTAL_GAMES = Number(setup.games); WIN_BY_TWO = Boolean(setup.winByTwo); state.settings = { ...setup }; state.teams = [$('#welcomeTeamOne').value.trim() || 'US', $('#welcomeTeamTwo').value.trim() || 'THEM']; state.matchComplete = state.games.length >= TOTAL_GAMES; save(); setupOpen = false; settingsMode = false; render(); toast('Game settings updated'); }; 
 $('.brand').onclick = event => { event.preventDefault(); if (state.started) { setupOpen = true; $('#welcomeTeamOne').value = state.teams[0]; $('#welcomeTeamTwo').value = state.teams[1]; render(); } };
 
 $('#confirmReset').onclick = event => {
   event.preventDefault();
   state = initial(state.teams);
+  settingsMode = false;
+  setupOpen = false;
   state.settings = { ...setup };
   state.started = true;
   $('#confirmDialog').close();
   save();
   toast('New five-game match ready');
 };
-if (!state.started) { state.started = false; setupOpen = true; }
+if (!state.started) { setupOpen = true; }
 render();
 if (migrated) {
   save();
