@@ -363,7 +363,7 @@ function exportScore() {
     <table><thead><tr><th>Hand</th><th>Bid</th><th>Bid result</th><th>High<br>US / THEM</th><th>Low<br>US / THEM</th><th>Jack<br>US / THEM</th><th>Game point<br>US / THEM</th><th>Hand score<br>US / THEM</th><th>Running score<br>US / THEM</th></tr></thead><tbody>${handRows(state.hands.filter(hand => hand.game === game.game))}</tbody></table></section>`);
   if (!state.gameComplete && !state.matchComplete) {
     gameSections.push(`<section class="game-block"><div class="game-title"><h2>Game ${state.game}</h2><div><strong>In progress</strong><span>${state.gameScore[0]} – ${state.gameScore[1]}</span></div></div>
-      <table><thead><tr><th>Hand</th><th>Bid</th><th>Bid result</th><th>High<br>US / THEM</th><th>Low<br>US / THEM</th><th>Jack<br>US / THEM</th><th>Game point<br>US / THEM</th><th>Hand score<br>US / THEM</th><th>Running score<br>US / THEM</th></tr></thead><tbody>${handRows([], true)}</tbody></table></section>`);
+      <table><thead><tr><th>Hand</th><th>Bid</th><th>Bid result</th><th>High<br>US / THEM</th><th>Low<br>US / THEM</th><th>Jack<br>US / THEM</th><th>Game point<br>US / THEM</th><th>Hand score<br>US / THEM</th><th>Running score<br>US / THEM</th></tr></thead><tbody>${handRows(state.hands.filter(hand => hand.game === state.game), true)}</tbody></table></section>`);
   }
   const date = new Date().toLocaleDateString();
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Setback Score</title><style>

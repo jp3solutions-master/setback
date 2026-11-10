@@ -27,3 +27,6 @@ body.theme-dark{--ink:#edf4ef;--muted:#aab8af;--paper:#101a17;--card:#192621;--g
 
 /* Give the footer clear separation from the score cards. */
 .app-shell>footer{margin-top:24px;padding:12px 0 calc(24px + env(safe-area-inset-bottom));line-height:1.7}.settings-toggle{font-size:15px}
+/* Long team names wrap in the score column headers instead of truncating. */
+.score-head{align-items:end}
+.score-head span:nth-child(2),.score-head span:nth-child(3){overflow:visible;white-space:normal;text-overflow:clip;overflow-wrap:anywhere;line-height:1.2;letter-spacing:.02em;hyphens:auto}
